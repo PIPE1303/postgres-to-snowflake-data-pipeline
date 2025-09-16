@@ -194,13 +194,96 @@ airflow dags trigger data_dictionary_dag
 
 ## 📊 Datos de Ejemplo
 
-El proyecto incluye datos de ejemplo para un sistema de puntos de tarjetas de crédito:
+### ⚠️ **Importante: Datos No Incluidos**
 
-- **🏦 Bancos**: Información de instituciones financieras
-- **👤 Titulares**: Datos de titulares de tarjetas
-- **💳 Tarjetas**: Información de tarjetas de puntos
-- **🎯 Programas**: Programas de lealtad
-- **👥 Usuarios**: Datos de usuarios del sistema
+**Los archivos de datos no se incluyen en este repositorio por razones de confidencialidad y seguridad.** La carpeta `data/` contiene solo la estructura de directorios como referencia.
+
+### 📁 **Estructura de Datos Requerida**
+
+Para ejecutar el pipeline, debes crear la siguiente estructura de datos en la carpeta `data/`:
+
+```
+data/
+├── supabase/
+│   ├── banco.csv
+│   ├── card_holder.csv
+│   ├── programa.csv
+│   ├── tarjeta_puntos.csv
+│   └── usuario.csv
+└── rds/
+    ├── banco.csv
+    ├── card_holder.csv
+    ├── programa.csv
+    ├── tarjeta_puntos.csv
+    └── usuario.csv
+```
+
+### 📋 **Formato de Archivos CSV**
+
+Cada archivo CSV debe tener las siguientes columnas:
+
+#### **banco.csv**
+```csv
+bankid,issuer,name,creation_date_time,status,source_database,export_timestamp
+1,Banco Ejemplo,Banco Ejemplo S.A.,2025-01-01 10:00:00,activo,SUPABASE,2025-01-01 10:00:00
+```
+
+#### **card_holder.csv**
+```csv
+cardholderid,name,email,phone,creation_date_time,status,source_database,export_timestamp
+1,Juan Pérez,juan.perez@email.com,+57-300-123-4567,2025-01-01 10:00:00,activo,SUPABASE,2025-01-01 10:00:00
+```
+
+#### **programa.csv**
+```csv
+programid,name,description,start_date,end_date,status,source_database,export_timestamp
+1,Programa Puntos,Programa de lealtad con puntos,2025-01-01,2025-12-31,activo,SUPABASE,2025-01-01 10:00:00
+```
+
+#### **tarjeta_puntos.csv**
+```csv
+tarjetaid,cardholderid,programid,card_number,points_balance,creation_date_time,status,source_database,export_timestamp
+1,1,1,****-****-****-1234,1000,2025-01-01 10:00:00,activo,SUPABASE,2025-01-01 10:00:00
+```
+
+#### **usuario.csv**
+```csv
+userid,username,email,role,creation_date_time,status,source_database,export_timestamp
+1,admin,admin@empresa.com,administrador,2025-01-01 10:00:00,activo,SUPABASE,2025-01-01 10:00:00
+```
+
+### 🔧 **Generación de Datos de Prueba**
+
+Para generar datos de ejemplo, ejecuta el script incluido:
+
+```bash
+# Generar datos de ejemplo
+python scripts/generate_sample_data.py
+```
+
+Este script creará:
+- ✅ Estructura de directorios necesaria
+- ✅ Archivos CSV con datos de ejemplo para todas las tablas
+- ✅ Datos diferenciados para Supabase y RDS
+- ✅ Formato correcto para el pipeline
+
+**Nota**: Los datos generados son solo para pruebas. Reemplaza con tus datos reales siguiendo el mismo formato.
+
+### 🛡️ **Consideraciones de Seguridad**
+
+- **Nunca subas datos reales** a repositorios públicos
+- **Usa datos anonimizados** para pruebas
+- **Configura .gitignore** para excluir archivos sensibles
+- **Usa variables de entorno** para credenciales
+- **Implementa encriptación** para datos en tránsito
+
+### 📝 **Notas Importantes**
+
+1. **Mismo formato**: Los archivos en `supabase/` y `rds/` deben tener el mismo formato
+2. **Encoding**: Usa UTF-8 para caracteres especiales
+3. **Fechas**: Formato `YYYY-MM-DD HH:MM:SS`
+4. **IDs**: Deben ser únicos dentro de cada base de datos
+5. **Status**: Valores válidos: `activo`, `inactivo`, `suspendido`
 
 ## 📚 Documentación
 

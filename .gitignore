@@ -172,12 +172,16 @@ credentials/
 *.pem
 *.key
 
-# Data files (if they contain sensitive information)
-# Uncomment if needed:
-# data/
-# *.csv
-# *.json
-# *.parquet
+# Data files (contain sensitive information - DO NOT COMMIT)
+data/*.csv
+data/**/*.csv
+*.csv
+*.json
+*.parquet
+
+# Keep directory structure but ignore content
+data/supabase/*.csv
+data/rds/*.csv
 
 # Generated documentation (will be regenerated)
 docs/data_dictionaries/

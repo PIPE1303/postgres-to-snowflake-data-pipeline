@@ -1,0 +1,53 @@
+Table banco {
+  bankid               int        [pk]
+  issuer               varchar(100)
+  name                 varchar(150)
+  creation_date_time   timestamp
+  status               varchar(50)
+}
+
+Table programa {
+  programid                  int          [pk]
+  name                       varchar(150)
+  redemption_value_per_point numeric(18,6)
+  creation_date_time         timestamp
+}
+
+Table usuario {
+  id_user               int            [pk]
+  firstname             varchar(120)
+  lastname              varchar(120)
+  identificationnumber  varchar(60)
+  emailaddress          varchar(255)
+  streetaddress         varchar(255)
+  idauthuserstatus      varchar(50)
+  createdat             timestamp
+  channel_id            varchar(50)
+}
+
+Table cardholder {
+  cardholder_id        int            [pk]
+  first_name           varchar(120)
+  last_name            varchar(120)
+  email                varchar(255)
+  creation_date_time   timestamp
+  user_id              int
+  status               varchar(50)
+}
+
+Table tarjeta_puntos {
+  points_card_id         int           [pk]
+  cardholder_id          int
+  program_id             int
+  bank_id                int
+  transaction_date_time  timestamp
+  type                   varchar(50)
+  points                 int
+  operation              varchar(10)
+}
+
+
+Ref: cardholder.user_id > usuario.id_user
+Ref: tarjeta_puntos.cardholder_id > cardholder.cardholder_id
+Ref: tarjeta_puntos.program_id > programa.programid
+Ref: tarjeta_puntos.bank_id > banco.bankid

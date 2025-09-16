@@ -1,0 +1,113 @@
+---
+description: Database schema patterns and metadata standards
+---
+
+# Database Schema and Metadata Standards
+
+## Table Structure
+All tables should include these standard columns where applicable:
+
+### Primary Keys
+- `banco`: `bankid` (INTEGER)
+- `programa`: `programid` (INTEGER) 
+- `usuario`: `id_user` (INTEGER)
+- `cardholder`: `cardholder_id` (INTEGER)
+- `tarjeta_puntos`: `points_card_id` (INTEGER)
+
+### Standard Columns
+- `creation_date_time` (TIMESTAMP) - Record creation timestamp
+- `createdat` (TIMESTAMP) - Alternative creation timestamp
+- `status` (VARCHAR) - Record status
+- `source_database` (VARCHAR) - Source database identifier
+- `export_timestamp` (TIMESTAMP) - Export timestamp
+
+## Metadata Standards
+
+### Table Comments
+Always include descriptive table comments:
+
+```sql
+COMMENT ON TABLE table_name IS 'Descriptive table purpose and usage';
+```
+
+### Column Comments
+Include detailed column descriptions:
+
+```sql
+COMMENT ON COLUMN table_name.column_name IS 'Detailed column description including data type, constraints, and business meaning';
+```
+
+### Constraint Comments
+Document foreign key relationships:
+
+```sql
+COMMENT ON CONSTRAINT constraint_name IS 'Relationship description: table1.column references table2.column';
+```
+
+## PostgreSQL Schema Creation
+Use [create_schema_with_metadata.py](mdc:scripts/create_schema_with_metadata.py) pattern:
+
+```python
+def create_tables_with_metadata(conn, db_name):
+    tables_metadata = {
+        'table_name': {
+            'description': 'Table purpose and usage',
+            'columns': {
+                'column_name': {
+                    'type': 'DATA_TYPE',
+                    'description': 'Column description'
+                }
+            }
+        }
+    }
+    
+    for table_name, table_info in tables_metadata.items():
+        # Create table with PRIMARY KEY
+        create_sql = f"CREATE TABLE {table_name} (\n  " + ",\n  ".join(columns) + "\n)"
+        
+        # Add table comment
+        table_comment_sql = f"COMMENT ON TABLE {table_name} IS '{table_info['description']}'"
+        
+        # Add column comments
+        for col_name, col_info in table_info['columns'].items():
+            column_comment_sql = f"COMMENT ON COLUMN {table_name}.{col_name} IS '{col_info['description']}'"
+```
+
+## Snowflake Schema Creation
+Use [s3_to_snowflake_dag.py](mdc:dags/s3_to_snowflake_dag.py) pattern:
+
+```sql
+CREATE OR REPLACE TABLE schema.table_name (
+    column_name DATA_TYPE COMMENT 'Column description',
+    -- ... other columns
+) COMMENT = 'Table description';
+```
+
+## Data Types
+
+### PostgreSQL
+- `INTEGER` - Primary keys and numeric IDs
+- `VARCHAR(n)` - Text fields with length limits
+- `TIMESTAMP` - Date/time fields
+- `TEXT` - Long text fields
+
+### Snowflake
+- `INTEGER` - Numeric IDs
+- `VARCHAR` - Text fields (no length limit needed)
+- `TIMESTAMP_NTZ` - Date/time fields (no timezone)
+- `STRING` - Long text fields
+
+## Foreign Key Relationships
+Document all relationships in metadata:
+
+```python
+constraints_metadata = {
+    'fk_table1_table2': {
+        'type': 'FOREIGN KEY',
+        'description': 'table1.column references table2.column - relationship purpose'
+    }
+}
+```
+
+## Data Dictionary Generation
+Use [generate_postgres_dictionary.py](mdc:scripts/generate_postgres_dictionary.py) and [generate_snowflake_dictionary.py](mdc:scripts/generate_snowflake_dictionary.py) to automatically extract and document all metadata.

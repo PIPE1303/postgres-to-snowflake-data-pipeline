@@ -1,0 +1,109 @@
+---
+globs: dags/*.py
+description: Airflow DAG development patterns and best practices
+---
+
+# Airflow DAG Development Patterns
+
+## DAG Structure
+Always follow this pattern for DAG files:
+
+```python
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.decorators import task
+from airflow.models import Variable
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+import subprocess
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+default_args = {
+    'owner': 'gennius_xyz',
+    'depends_on_past': False,
+    'start_date': datetime(2025, 1, 1),
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5)
+}
+
+@dag(
+    default_args=default_args,
+    description='DAG description',
+    schedule='@daily',  # or appropriate schedule
+    catchup=False,
+    tags=['appropriate', 'tags'],
+    dag_id='unique_dag_id'
+)
+def dag_name():
+    # DAG implementation
+    pass
+
+dag_instance = dag_name()
+```
+
+## Task Patterns
+
+### Python Tasks with Subprocess
+When running Python scripts as subprocesses, always pass environment variables:
+
+```python
+@task
+def task_name():
+    project_root = '/usr/local/airflow'
+    script_path = f'{project_root}/scripts/script_name.py'
+    
+    env_vars = {
+        "SUPABASE_HOST": Variable.get("supabase_host"),
+        "SUPABASE_NAME": Variable.get("supabase_name"),
+        # ... other variables
+    }
+    
+    result = subprocess.run([
+        'python', script_path
+    ], check=True, capture_output=True, text=True, cwd=project_root, env={**os.environ, **env_vars})
+    
+    return result.stdout
+```
+
+### SQL Tasks
+Use SQLExecuteQueryOperator for database operations:
+
+```python
+@task
+def sql_task():
+    return SQLExecuteQueryOperator(
+        task_id='sql_task_id',
+        conn_id='connection_id',
+        sql="SELECT * FROM table"
+    ).execute(context={})
+```
+
+## Connection Management
+- Use Airflow Connections for database credentials
+- Pass credentials as environment variables to subprocess scripts
+- Never hardcode credentials in DAG files
+
+## Variable Management
+- Use Airflow Variables for configuration
+- Access with `Variable.get("variable_name")`
+- Set default values when appropriate: `Variable.get("var", default_var="default")`
+
+## Error Handling
+Always include proper error handling and logging:
+
+```python
+try:
+    # Task logic
+    logger.info("Task started")
+    # ... implementation
+    logger.info("Task completed successfully")
+    return "Success message"
+except Exception as e:
+    logger.error(f"Task failed: {e}")
+    raise
+```

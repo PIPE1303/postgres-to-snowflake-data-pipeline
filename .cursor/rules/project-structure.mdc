@@ -1,0 +1,58 @@
+---
+alwaysApply: true
+description: Project structure and architecture guide for the Gennius XYZ data pipeline
+---
+
+# Gennius XYZ Data Pipeline - Project Structure
+
+## Overview
+This is a comprehensive data pipeline project using Apache Airflow to orchestrate ETL processes between PostgreSQL databases (Supabase & RDS), AWS S3, and Snowflake.
+
+## Core Architecture
+```
+PostgreSQL (Supabase + RDS) → S3 (Parquet) → Snowflake (Bronze) → Snowflake (Silver) → Supabase (Reports)
+```
+
+## Directory Structure
+
+### DAGs (`dags/`)
+- [data_pipeline_variables_dag.py](mdc:dags/data_pipeline_variables_dag.py) - Main pipeline: schema creation + data loading
+- [export_to_s3_dag.py](mdc:dags/export_to_s3_dag.py) - PostgreSQL to S3 export (Parquet format)
+- [s3_to_snowflake_dag.py](mdc:dags/s3_to_snowflake_dag.py) - S3 to Snowflake Bronze layer
+- [silver_layer_dag.py](mdc:dags/silver_layer_dag.py) - Silver layer generation in Snowflake + Supabase
+- [data_dictionary_dag.py](mdc:dags/data_dictionary_dag.py) - Automated data dictionary generation
+
+### Scripts (`scripts/`)
+- [create_schema_with_metadata.py](mdc:scripts/create_schema_with_metadata.py) - PostgreSQL schema with comments
+- [load_data.py](mdc:scripts/load_data.py) - CSV data loading to PostgreSQL
+- [export_to_s3.py](mdc:scripts/export_to_s3.py) - PostgreSQL to S3 export
+- [generate_postgres_dictionary.py](mdc:scripts/generate_postgres_dictionary.py) - PostgreSQL metadata extraction
+- [generate_snowflake_dictionary.py](mdc:scripts/generate_snowflake_dictionary.py) - Snowflake metadata extraction
+- [generate_markdown_docs.py](mdc:scripts/generate_markdown_docs.py) - Documentation generation
+
+### Data (`data/`)
+- `supabase/` - CSV files for Supabase database
+- `rds/` - CSV files for RDS database
+
+### Documentation (`docs/`)
+- [README_DICTIONARIES.md](mdc:docs/README_DICTIONARIES.md) - Data dictionary system documentation
+- [README_METADATA.md](mdc:docs/README_METADATA.md) - Metadata implementation guide
+
+## Key Technologies
+- **Apache Airflow** - Workflow orchestration
+- **PostgreSQL** - Source databases (Supabase, RDS)
+- **AWS S3** - Data staging (Parquet format)
+- **Snowflake** - Data warehouse (Bronze + Silver layers)
+- **Python** - Scripts and data processing
+- **psycopg2** - PostgreSQL connectivity
+- **pandas** - Data manipulation
+- **pytz** - Timezone handling (Colombia timezone)
+
+## Data Flow
+1. **Schema Creation** - Create tables with metadata in PostgreSQL
+2. **Data Loading** - Load CSV data into PostgreSQL tables
+3. **S3 Export** - Export PostgreSQL data to S3 as Parquet files
+4. **Snowflake Bronze** - Load S3 data into Snowflake Bronze layer
+5. **Snowflake Silver** - Generate analytical tables in Snowflake
+6. **Supabase Reports** - Create same reports in Supabase
+7. **Documentation** - Generate data dictionaries and metadata docs

@@ -1,0 +1,114 @@
+---
+description: Data flow patterns and ETL process guidelines
+---
+
+# Data Flow and ETL Process Guidelines
+
+## Pipeline Architecture
+The data pipeline follows this flow:
+
+```
+CSV Data → PostgreSQL (Supabase + RDS) → S3 (Parquet) → Snowflake (Bronze) → Snowflake (Silver) → Supabase (Reports)
+```
+
+## ETL Process Steps
+
+### 1. Schema Creation
+**DAG**: [data_pipeline_variables_dag.py](mdc:dags/data_pipeline_variables_dag.py)
+**Script**: [create_schema_with_metadata.py](mdc:scripts/create_schema_with_metadata.py)
+
+- Create tables with comprehensive metadata
+- Add table and column comments
+- Define primary keys and foreign key constraints
+- Document all relationships
+
+### 2. Data Loading
+**DAG**: [data_pipeline_variables_dag.py](mdc:dags/data_pipeline_variables_dag.py)
+**Script**: [load_data.py](mdc:scripts/load_data.py)
+
+- Load CSV data into PostgreSQL tables
+- Handle data type conversions
+- Clear existing data before loading
+- Support both Supabase and RDS databases
+
+### 3. S3 Export
+**DAG**: [export_to_s3_dag.py](mdc:dags/export_to_s3_dag.py)
+**Script**: [export_to_s3.py](mdc:scripts/export_to_s3.py)
+
+- Export PostgreSQL data to S3 as Parquet files
+- Organize by year/month/day (Colombia timezone)
+- Format timestamps explicitly to prevent issues
+- Add export metadata columns
+
+### 4. Snowflake Bronze Layer
+**DAG**: [s3_to_snowflake_dag.py](mdc:dags/s3_to_snowflake_dag.py)
+
+- Load S3 Parquet files into Snowflake
+- Use `CREATE OR REPLACE TABLE` for data freshness
+- Include comprehensive table and column comments
+- Handle timestamp data types properly
+
+### 5. Snowflake Silver Layer
+**DAG**: [silver_layer_dag.py](mdc:dags/silver_layer_dag.py)
+
+- Generate analytical tables from Bronze layer
+- Create managerial reports and summaries
+- Include business logic and aggregations
+- Document all calculations and metrics
+
+### 6. Supabase Reports
+**DAG**: [silver_layer_dag.py](mdc:dags/silver_layer_dag.py)
+
+- Execute same analytical queries in Supabase
+- Adapt SQL syntax for PostgreSQL
+- Create same report tables with metadata
+- Maintain consistency between systems
+
+### 7. Documentation Generation
+**DAG**: [data_dictionary_dag.py](mdc:dags/data_dictionary_dag.py)
+
+- Extract metadata from all databases
+- Generate JSON data dictionaries
+- Create Markdown documentation
+- Maintain up-to-date documentation
+
+## Data Formats
+
+### CSV Input
+- Standard CSV format with headers
+- Consistent column naming
+- Proper data types in source files
+
+### Parquet Export
+- Optimized for Snowflake ingestion
+- Preserves data types
+- Compressed format for efficiency
+- Partitioned by date
+
+### Database Storage
+- PostgreSQL: Standard SQL types
+- Snowflake: Optimized warehouse types
+- Consistent naming conventions
+
+## Timezone Handling
+- Use Colombia timezone (`America/Bogota`) for all date operations
+- Convert UTC timestamps to local time
+- Maintain timezone consistency across pipeline
+
+## Error Handling
+- Comprehensive logging at each step
+- Graceful failure handling
+- Data validation and quality checks
+- Rollback capabilities for failed operations
+
+## Monitoring and Logging
+- Detailed logs for each ETL step
+- Performance metrics tracking
+- Data quality monitoring
+- Pipeline status reporting
+
+## Data Quality
+- Validate data types and formats
+- Check for missing or invalid data
+- Ensure referential integrity
+- Monitor data freshness and completeness

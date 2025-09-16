@@ -1,0 +1,14 @@
+# Dependencias esenciales para ETL con Airflow, Snowflake, S3, PostgreSQL y Supabase
+apache-airflow-providers-snowflake
+apache-airflow-providers-amazon
+apache-airflow-providers-postgres
+boto3
+# Dependencias adicionales para scripts de carga de datos
+psycopg2-binary
+#python-dotenv
+pydbml
+
+# Dependencias para export a S3
+pandas
+sqlalchemy
+#psycopg2

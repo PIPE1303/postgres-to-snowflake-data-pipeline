@@ -1,0 +1,197 @@
+---
+description: Development workflow and best practices for the data pipeline project
+---
+
+# Development Workflow and Best Practices
+
+## Development Environment Setup
+
+### Docker Container Management
+```bash
+# Start containers
+docker-compose up -d
+
+# Check container status
+docker ps
+
+# Access scheduler container
+docker exec -it genius-xyz_5b3fe4-scheduler-1 bash
+
+# Copy files to container
+docker cp local_file container_name:/usr/local/airflow/path/to/file
+```
+
+### File Synchronization
+Always copy updated files to the container after making changes:
+
+```bash
+# Copy DAG files
+docker cp dags/filename.py genius-xyz_5b3fe4-scheduler-1:/usr/local/airflow/dags/
+
+# Copy script files
+docker cp scripts/filename.py genius-xyz_5b3fe4-scheduler-1:/usr/local/airflow/scripts/
+
+# Force DAG refresh
+docker exec genius-xyz_5b3fe4-scheduler-1 airflow dags reserialize
+```
+
+## Testing Workflow
+
+### 1. Test Scripts Individually
+```bash
+# Test PostgreSQL scripts
+docker exec -it genius-xyz_5b3fe4-scheduler-1 python /usr/local/airflow/scripts/script_name.py supabase
+docker exec -it genius-xyz_5b3fe4-scheduler-1 python /usr/local/airflow/scripts/script_name.py rds
+
+# Test with environment variables
+docker exec -it genius-xyz_5b3fe4-scheduler-1 env SUPABASE_HOST=host python /usr/local/airflow/scripts/script_name.py
+```
+
+### 2. Test DAGs
+```bash
+# List DAGs
+docker exec genius-xyz_5b3fe4-scheduler-1 airflow dags list
+
+# Trigger DAG
+docker exec genius-xyz_5b3fe4-scheduler-1 airflow dags trigger dag_name
+
+# Check DAG runs
+docker exec genius-xyz_5b3fe4-scheduler-1 airflow dags list-runs --dag-id dag_name
+```
+
+### 3. Monitor Execution
+```bash
+# Check task logs
+docker exec genius-xyz_5b3fe4-scheduler-1 airflow tasks list --dag-id dag_name
+
+# View logs
+docker exec genius-xyz_5b3fe4-scheduler-1 airflow tasks log --dag-id dag_name --task-id task_name
+```
+
+## Code Quality Standards
+
+### Python Code Style
+- Follow PEP 8 guidelines
+- Use type hints where appropriate
+- Include comprehensive docstrings
+- Add logging statements for debugging
+
+### Error Handling
+```python
+try:
+    # Operation
+    logger.info("Operation started")
+    result = perform_operation()
+    logger.info("Operation completed successfully")
+    return result
+except Exception as e:
+    logger.error(f"Operation failed: {e}")
+    raise
+```
+
+### Logging Standards
+```python
+import logging
+logger = logging.getLogger(__name__)
+
+# Use appropriate log levels
+logger.info("Information message")
+logger.warning("Warning message")
+logger.error("Error message")
+logger.debug("Debug message")
+```
+
+## Configuration Management
+
+### Airflow Variables
+Set all configuration through Airflow Variables:
+
+```python
+from airflow.models import Variable
+
+# Get variables with defaults
+host = Variable.get("database_host", default_var="localhost")
+port = Variable.get("database_port", default_var="5432")
+```
+
+### Environment Variables
+Pass credentials as environment variables to subprocess scripts:
+
+```python
+env_vars = {
+    "DATABASE_HOST": Variable.get("database_host"),
+    "DATABASE_USER": Variable.get("database_user"),
+    "DATABASE_PASSWORD": Variable.get("database_password")
+}
+```
+
+## Database Management
+
+### Connection Testing
+Always test database connections before implementing:
+
+```python
+def test_connection():
+    try:
+        conn = psycopg2.connect(**config)
+        logger.info("Database connection successful")
+        conn.close()
+        return True
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        return False
+```
+
+### Schema Validation
+Validate schema changes before deployment:
+
+```python
+def validate_schema(conn):
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+        tables = cursor.fetchall()
+        logger.info(f"Found {len(tables)} tables in schema")
+        return tables
+```
+
+## Deployment Process
+
+### 1. Development
+- Make changes locally
+- Test scripts individually
+- Validate database connections
+
+### 2. Container Update
+- Copy files to container
+- Force DAG reserialization
+- Verify file updates
+
+### 3. Testing
+- Trigger DAG manually
+- Monitor execution logs
+- Validate data output
+
+### 4. Production
+- Schedule DAG appropriately
+- Monitor execution
+- Set up alerts for failures
+
+## Monitoring and Maintenance
+
+### Regular Checks
+- Monitor DAG execution status
+- Check data quality and freshness
+- Review error logs
+- Validate data dictionary updates
+
+### Performance Optimization
+- Monitor execution times
+- Optimize slow queries
+- Review resource usage
+- Implement caching where appropriate
+
+### Documentation Updates
+- Keep data dictionaries current
+- Update README files
+- Document new features
+- Maintain troubleshooting guides

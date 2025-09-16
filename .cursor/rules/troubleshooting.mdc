@@ -1,0 +1,165 @@
+---
+description: Common issues and troubleshooting guide for the data pipeline
+---
+
+# Troubleshooting Guide
+
+## Common Issues and Solutions
+
+### 1. PostgresHook in Subprocess Error
+**Error**: `sqlalchemy.exc.ArgumentError: Could not parse SQLAlchemy URL from string 'airflow-db-not-allowed:///'`
+
+**Cause**: Using `PostgresHook` in scripts run as subprocesses
+
+**Solution**: Use `psycopg2` directly in subprocess scripts:
+```python
+# ❌ Don't use in subprocess scripts
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+# ✅ Use instead
+import psycopg2
+from psycopg2.extras import RealDictCursor
+```
+
+### 2. Path Issues in Docker
+**Error**: `FileNotFoundError: [Errno 2] No such file or directory: 'C:/Program Files/Git/usr/local/airflow'`
+
+**Cause**: Windows paths in Docker container
+
+**Solution**: Use Unix-style absolute paths:
+```python
+# ❌ Don't use
+project_root = os.path.join(os.path.dirname(__file__), '..')
+
+# ✅ Use instead
+project_root = '/usr/local/airflow'
+```
+
+### 3. Timestamp Format Issues
+**Error**: Timestamps appearing as `1711475460000000000` (nanoseconds)
+
+**Cause**: Parquet not handling timestamp formats correctly
+
+**Solution**: Explicitly format timestamps:
+```python
+df['creation_date_time'] = pd.to_datetime(df['creation_date_time'], errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+```
+
+### 4. Primary Key Missing Error
+**Error**: `there is no unique constraint matching given keys for referenced table`
+
+**Cause**: Missing PRIMARY KEY definitions in CREATE TABLE statements
+
+**Solution**: Always include PRIMARY KEY in table creation:
+```sql
+CREATE TABLE table_name (
+    id INTEGER,
+    name VARCHAR(255),
+    PRIMARY KEY (id)  -- Always include this
+);
+```
+
+### 5. Snowflake MFA Error
+**Error**: `Multi-factor authentication is required for this account`
+
+**Solutions**:
+1. Disable MFA in Snowflake account settings
+2. Use key pair authentication
+3. Use basic username/password (after MFA disabled)
+
+### 6. DAG Not Found Error
+**Error**: `Dag id not found in DagModel`
+
+**Cause**: Airflow caching issues
+
+**Solution**: Force DAG reserialization:
+```bash
+docker exec container_name airflow dags reserialize
+```
+
+### 7. Variable Not Found Error
+**Error**: `VARIABLE_NOT_FOUND: {'key': 'VARIABLE_NAME'}`
+
+**Solution**: Set default values or create variables:
+```python
+# With default
+Variable.get("variable_name", default_var="default_value")
+
+# Or create the variable in Airflow UI
+```
+
+## Debugging Steps
+
+### 1. Check Container Logs
+```bash
+docker logs container_name
+```
+
+### 2. Check Airflow Logs
+```bash
+docker exec container_name airflow dags list-runs --dag-id dag_name
+```
+
+### 3. Test Scripts Manually
+```bash
+docker exec -it container_name python /usr/local/airflow/scripts/script_name.py
+```
+
+### 4. Verify Connections
+```bash
+docker exec container_name airflow connections list
+```
+
+### 5. Check Variables
+```bash
+docker exec container_name airflow variables list
+```
+
+## File Synchronization Issues
+
+### Copy Files to Container
+```bash
+docker cp local_file container_name:/usr/local/airflow/path/to/file
+```
+
+### Force DAG Refresh
+```bash
+docker exec container_name airflow dags reserialize
+```
+
+## Database Connection Issues
+
+### Test PostgreSQL Connection
+```python
+import psycopg2
+conn = psycopg2.connect(
+    host='host',
+    database='database',
+    user='user',
+    password='password',
+    port='5432'
+)
+print("Connection successful")
+conn.close()
+```
+
+### Test Snowflake Connection
+```python
+from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
+hook = SnowflakeHook(snowflake_conn_id='snowflake_default')
+conn = hook.get_conn()
+print("Snowflake connection successful")
+```
+
+## Performance Issues
+
+### Large Data Processing
+- Use batch processing for large datasets
+- Implement proper indexing in databases
+- Use Parquet format for S3 storage
+- Consider data partitioning
+
+### Memory Issues
+- Process data in chunks
+- Use streaming for large files
+- Monitor container memory usage

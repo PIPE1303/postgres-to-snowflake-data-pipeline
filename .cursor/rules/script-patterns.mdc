@@ -1,0 +1,143 @@
+---
+globs: scripts/*.py
+description: Python script development patterns for data pipeline scripts
+---
+
+# Data Pipeline Script Patterns
+
+## Script Structure
+All scripts should follow this pattern:
+
+```python
+import os
+import sys
+import logging
+from datetime import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+# Logging configuration
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def main():
+    """Main function"""
+    logger.info("Script started")
+    try:
+        # Script logic
+        pass
+    except Exception as e:
+        logger.error(f"Script failed: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+```
+
+## Database Connection Patterns
+
+### PostgreSQL Connection
+Always use psycopg2 directly (not PostgresHook) for subprocess scripts:
+
+```python
+def get_postgres_connection(db_type):
+    """Get PostgreSQL connection using psycopg2 directly"""
+    if db_type == 'supabase':
+        config = {
+            'host': os.getenv('SUPABASE_HOST'),
+            'database': os.getenv('SUPABASE_NAME'),
+            'user': os.getenv('SUPABASE_USER'),
+            'password': os.getenv('SUPABASE_PASSWORD'),
+            'port': os.getenv('SUPABASE_PORT', '5432')
+        }
+    elif db_type == 'rds':
+        config = {
+            'host': os.getenv('RDS_HOST'),
+            'database': os.getenv('RDS_NAME'),
+            'user': os.getenv('RDS_USER'),
+            'password': os.getenv('RDS_PASSWORD'),
+            'port': os.getenv('RDS_PORT', '5432')
+        }
+    else:
+        raise ValueError(f"Unknown database type: {db_type}")
+    
+    return psycopg2.connect(**config)
+```
+
+## Environment Variables
+Scripts should read configuration from environment variables:
+
+```python
+# Database configurations
+SUPABASE_CONFIG = {
+    'host': os.getenv('SUPABASE_HOST'),
+    'database': os.getenv('SUPABASE_NAME'),
+    'user': os.getenv('SUPABASE_USER'),
+    'password': os.getenv('SUPABASE_PASSWORD'),
+    'port': os.getenv('SUPABASE_PORT', '5432')
+}
+```
+
+## Data Processing Patterns
+
+### Timestamp Handling
+Always format timestamps explicitly for Parquet export:
+
+```python
+# Format timestamps to prevent nanosecond issues
+df['creation_date_time'] = pd.to_datetime(df['creation_date_time'], errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+```
+
+### Timezone Handling
+Use Colombia timezone for date operations:
+
+```python
+import pytz
+colombia_tz = pytz.timezone('America/Bogota')
+current_date = datetime.now(colombia_tz).strftime('%Y/%m/%d')
+```
+
+## File Operations
+Always use absolute paths for Airflow container:
+
+```python
+project_root = '/usr/local/airflow'
+script_path = f'{project_root}/scripts/script_name.py'
+```
+
+## Error Handling
+Include comprehensive error handling:
+
+```python
+try:
+    # Database operation
+    with conn.cursor() as cursor:
+        cursor.execute(query, params)
+        conn.commit()
+    logger.info("Operation completed successfully")
+except Exception as e:
+    logger.error(f"Error in operation: {e}")
+    if conn:
+        conn.rollback()
+    raise
+finally:
+    if conn:
+        conn.close()
+```
+
+## Command Line Arguments
+Support command line arguments for database selection:
+
+```python
+def main():
+    if len(sys.argv) > 1:
+        db_type = sys.argv[1].lower()
+        if db_type in ['supabase', 'rds']:
+            process_database(db_type)
+        else:
+            logger.error(f"Unknown database type: {db_type}")
+            sys.exit(1)
+    else:
+        # Process all databases
+        process_all_databases()
+```
